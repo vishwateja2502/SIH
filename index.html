@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot with Edit, Delete, and Photo Send</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            width: 360px;
+            max-width: 100%;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            overflow: hidden;
+        }
+        .chat-box {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            border-bottom: 2px solid #f0f0f0;
+            background: #f9f9f9;
+            box-shadow: inset 0 -3px 5px rgba(0, 0, 0, 0.1);
+        }
+        .message {
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 20px;
+            max-width: 80%;
+            line-height: 1.4;
+            position: relative;
+        }
+        .user-message {
+            background: #00bfae;
+            color: #fff;
+            margin-left: auto;
+            border-bottom-right-radius: 0;
+        }
+        .bot-message {
+            background: #eee;
+            color: #333;
+            border-bottom-left-radius: 0;
+        }
+        .message img {
+            max-width: 200px;
+            border-radius: 10px;
+            display: block;
+            margin: 5px 0;
+        }
+        .message button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: #007bff;
+        }
+        .message .edit-btn {
+            right: 60px;
+        }
+        .message .delete-btn {
+            right: 10px;
+        }
+        .input-box {
+            display: flex;
+            padding: 10px;
+            background: #fff;
+            border-top: 2px solid #f0f0f0;
+            box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.1);
+            align-items: center;
+        }
+        .input-box input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .input-box input[type="file"] {
+            display: none;
+        }
+        .input-box input[type="text"]:focus {
+            border-color: #00bfae;
+        }
+        .input-box button {
+            padding: 12px 20px;
+            border: none;
+            background: #00bfae;
+            color: #fff;
+            border-radius: 20px;
+            margin-left: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .input-box button:hover {
+            background: #009b8f;
+        }
+        .input-box label {
+            background: #00bfae;
+            color: #fff;
+            border-radius: 20px;
+            padding: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .input-box label:hover {
+            background: #009b8f;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box">
+            <!-- Chat messages will appear here -->
+        </div>
+        <div class="input-box">
+            <input type="file" id="file-input" accept="image/*">
+            <label for="file-input">📷</label>
+            <input type="text" id="user-input" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        let editingMessage = null;
+
+        function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const messageText = userInput.value.trim();
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+
+            if (messageText === '' && !file) return;
+
+            if (editingMessage) {
+                editingMessage.querySelector('.message-text').textContent = messageText;
+                if (file) {
+                    const img = editingMessage.querySelector('img');
+                    if (img) img.src = URL.createObjectURL(file);
+                }
+                editingMessage = null;
+                userInput.value = '';
+                fileInput.value = '';
+                return;
+            }
+
+            // Create message div
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${file ? 'user-message' : 'user-message'}`;
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+
+            if (file) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                messageContent.appendChild(img);
+            }
+            if (messageText) {
+                const text = document.createElement('span');
+                text.className = 'message-text';
+                text.textContent = messageText;
+                messageContent.appendChild(text);
+            }
+
+            messageDiv.appendChild(messageContent);
+            messageDiv.innerHTML += `
+                <button class="edit-btn" onclick="editMessage(this)">✏️</button>
+                <button class="delete-btn" onclick="deleteMessage(this)">🗑️</button>
+            `;
+
+            chatBox.appendChild(messageDiv);
+
+            // Clear input fields
+            userInput.value = '';
+            fileInput.value = '';
+
+            // Simulate bot response
+            setTimeout(() => {
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message bot-message';
+                botMessage.innerHTML = `<span class="message-text">${getBotResponse(messageText)}</span>`;
+                chatBox.appendChild(botMessage);
+
+                // Scroll to the bottom
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 500);
+        }
+
+        function editMessage(button) {
+            const messageDiv = button.closest('.message');
+            const messageText = messageDiv.querySelector('.message-text')?.textContent || '';
+            document.getElementById('user-input').value = messageText;
+            editingMessage = messageDiv;
+        }
+
+        function deleteMessage(button) {
+            const messageDiv = button.closest('.message');
+            messageDiv.remove();
+        }
+
+        function getBotResponse(userMessage) {
+            // Simple bot responses
+            const responses = {
+                'hello': 'Hi there! How can I assist you today?',
+                'how are you': 'I’m just a bot, but I’m here to help you!',
+                'bye': 'Goodbye! Have a fantastic day!',
+            };
+            return responses[userMessage.toLowerCase()] || "Sorry, I didn’t understand that.";
+        }
+    </script>
+</body>
+</html>
